@@ -19,10 +19,11 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-public class MainActivity extends AppCompatActivity {
-
+public class MainActivity extends AppCompatActivity implements SensorEventListener{
     String TAG = "MainActivity";
-
+    private final float[] gravity = new float[4];
+    private SensorManager sensorManager;
+    private Sensor sensor;
     private float xPos, xAcceleration, xVelocity = 0.0f;
     private float yPos, yAcceleration, yVelocity = 0.0f;
     private float screenWidth, screenHeight;
@@ -35,6 +36,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        sensorManager.registerListener(this, sensor, sensorManager.SENSOR_DELAY_FASTEST);
+
         this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
@@ -50,7 +55,7 @@ public class MainActivity extends AppCompatActivity {
         resetBall();
     }
 
-    private void update(int xOrientation, int yOrientation) {
+    private void update(float xOrientation, float yOrientation) {
         xAcceleration = xOrientation;
         yAcceleration = yOrientation;
         updateX();
@@ -113,5 +118,28 @@ public class MainActivity extends AppCompatActivity {
     void updateY() {
         yVelocity -= yAcceleration * 0.3f;
         yPos += yVelocity;
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent movimiento) {
+        //Constante para el movimiento lento
+        final float alpha = (float) 0.9;
+        //Filtrar el paso de gravedad
+        gravity[0] = alpha * gravity[0] + (1 - alpha) * movimiento.values[0];
+        gravity[1] = alpha * gravity[1] + (1 - alpha) * (movimiento.values[1]);
+        gravity[2] = alpha * gravity[2] + (1 - alpha) * movimiento.values[2];
+        //Eliminar la contribucion de la gravedad
+        float x = movimiento.values[0] - gravity[0];
+        float y = movimiento.values[1] - gravity[1];
+        float z = movimiento.values[2] - gravity[2];
+
+        //Actualizamos, utilizamos el contrarios de y para simular la bajada y subida
+        update(x,(y*-1));
+        //Log.d("Cordernadas", x+" "+y);
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
     }
 }
